@@ -7,7 +7,7 @@ description: >
   legal reasoning.
 entrypoints:
   environment: env.py:LegalEnv
-  api: api.py:app
+  api: server.app:app
   baseline: inference.py
 models:
   observation: models.py:Observation

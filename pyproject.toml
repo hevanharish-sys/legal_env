@@ -16,8 +16,12 @@ dependencies = [
     "uvicorn[standard]>=0.30.0",
     "openai>=1.40.0",
     "pydantic>=2.7.0",
-    "python-multipart>=0.0.9"
+    "python-multipart>=0.0.9",
+    "openenv-core>=0.2.0"
 ]
+
+[project.scripts]
+server = "server.app:launch"
 
 [project.optional-dependencies]
 dev = [
