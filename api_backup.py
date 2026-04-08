@@ -58,34 +58,18 @@ environment = LegalEnv()
 analyzer = DocumentAnalyzer()
 
 
-class ResetRequest(BaseModel):
-    task: str
-
-
-def perform_reset(task: str) -> Dict[str, Any]:
-    task_lower = task.lower()
-    if task_lower not in ["easy", "medium", "hard"]:
-        raise HTTPException(status_code=400, detail=f"Invalid task: {task}. Must be easy, medium, or hard.")
-    
+@app.post("/reset")
+@app.get("/reset")
+def reset(task: str = Query(..., pattern="^(easy|medium|hard)$")) -> Dict[str, Any]:
     try:
-        observation = environment.reset(task_lower)
+        observation = environment.reset(task)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     return {
-        "task": task_lower,
+        "task": task.lower(),
         "observation": observation.model_dump(),
     }
-
-
-@app.post("/reset")
-def reset_post(req: ResetRequest) -> Dict[str, Any]:
-    return perform_reset(req.task)
-
-
-@app.get("/reset")
-def reset_get(task: str = Query(..., pattern="^(easy|medium|hard)$")) -> Dict[str, Any]:
-    return perform_reset(task)
 
 
 @app.post("/step")
