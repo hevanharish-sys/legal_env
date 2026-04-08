@@ -35,12 +35,12 @@ Rules:
 
 Return ONLY JSON:
 
-{
+{{
 "risk_level": "...",
 "risk_type": "...",
 "rewrite": "...",
 "reason": "..."
-}
+}}
 
 Clause:
 {clause}"""
