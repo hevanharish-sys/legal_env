@@ -1,0 +1,36 @@
+name: Legal Document Risk Analyzer (LegalEnv)
+slug: legal-document-risk-analyzer
+version: 1.0.0
+description: >
+  A production-ready OpenEnv environment that simulates how legal-tech systems
+  analyze contract clauses, classify risk, recommend safer drafting, and explain
+  legal reasoning.
+entrypoints:
+  environment: env.py:LegalEnv
+  api: api.py:app
+  baseline: baseline.py
+models:
+  observation: models.py:Observation
+  action: models.py:Action
+  reward: models.py:Reward
+tasks:
+  easy:
+    description: Classify risk type for straightforward legal clauses.
+    required_outputs:
+      - risk_type
+  medium:
+    description: Classify both risk type and risk level for moderately nuanced clauses.
+    required_outputs:
+      - risk_type
+      - risk_level
+  hard:
+    description: Full contract risk analysis with classification, rewrite, and reasoning.
+    required_outputs:
+      - risk_type
+      - risk_level
+      - rewrite
+      - reason
+api:
+  reset: GET /reset?task={easy|medium|hard}
+  step: POST /step
+  state: GET /state

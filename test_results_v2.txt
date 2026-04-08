@@ -1,0 +1,45 @@
+
+--- Testing Task: EASY ---
+Case 1: User may terminate the agreement at any time with ...
+  Score: 1.0
+Case 2: All user data must remain confidential and cannot ...
+  Score: 1.0
+Case 3: The company must comply with all applicable laws....
+  Score: 1.0
+
+--- Testing Task: MEDIUM ---
+Case 1: Company is not liable for any indirect or direct d...
+  Score: 1.0
+Case 2: Payments once made are non-refundable under any co...
+  Score: 1.0
+Case 3: The agreement may be terminated with 30 days notic...
+  Score: 1.0
+
+--- Testing Task: HARD ---
+Case 1: Company is not responsible for any damages, losses...
+  Score: 0.9
+  Grading Details: {
+  "risk_level": 0.4,
+  "risk_type": 0.3,
+  "rewrite": 0.1,
+  "reason": 0.1
+}
+  Missing Fields: []
+Case 2: All payments are final and no refunds will be issu...
+  Score: 0.9
+  Grading Details: {
+  "risk_level": 0.4,
+  "risk_type": 0.3,
+  "rewrite": 0.1,
+  "reason": 0.1
+}
+  Missing Fields: []
+Case 3: The company may terminate the agreement at any tim...
+  Score: 0.85
+  Grading Details: {
+  "risk_level": 0.4,
+  "risk_type": 0.3,
+  "rewrite": 0.1,
+  "reason": 0.05
+}
+  Missing Fields: []
