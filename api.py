@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
-from typing import Annotated, Optional
+from typing import Annotated, Optional, Any, Dict
 import os
 
 from env import LegalEnv
