@@ -4,6 +4,9 @@ from typing import Any, Dict
 
 from fastapi import FastAPI, HTTPException, Query, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
 
 from env import LegalEnv
 from models import Action
@@ -26,9 +29,12 @@ app.add_middleware(
 
 @app.get("/")
 def root():
+    index_path = os.path.join("frontend", "dist", "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
     return {
         "status": "online",
-        "message": "Legal Document Risk Analyzer API is running.",
+        "message": "Legal Document Risk Analyzer API is running. (Frontend not built yet)",
         "endpoints": {
             "reset": "/reset?task={easy|medium|hard}",
             "step": "/step",
@@ -38,6 +44,14 @@ def root():
             "docs": "/docs"
         }
     }
+
+
+# Serve static files from the frontend/dist folder
+dist_path = os.path.join("frontend", "dist")
+if os.path.exists(dist_path):
+    app.mount("/assets", StaticFiles(directory=os.path.join(dist_path, "assets")), name="assets")
+    # For any other static files in dist (vite produces assets folder mostly)
+    app.mount("/static", StaticFiles(directory=dist_path), name="static")
 
 
 environment = LegalEnv()

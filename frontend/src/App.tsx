@@ -54,7 +54,7 @@ type DocumentReport = {
   };
 };
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) || "http://127.0.0.1:8000";
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) || "";
 
 function HighlightedText({ text, red, yellow, phrases }: { text: string; red: string[]; yellow: string[]; phrases: Record<string, string> }) {
   if (!red.length && !yellow.length) return <>{text}</>;
