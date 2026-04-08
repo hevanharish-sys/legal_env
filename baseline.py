@@ -11,6 +11,11 @@ from openai import OpenAI
 from env import LegalEnv
 from models import Action, Observation
 
+# Configuration via environment variables
+API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
+MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
+HF_TOKEN = os.getenv("HF_TOKEN")
+
 PROMPT_TEMPLATE = """You are a legal AI assistant.
 
 Analyze the contract clause.
@@ -48,7 +53,6 @@ def extract_json_payload(text: str) -> Dict[str, Any]:
     cleaned = text.strip()
     if not cleaned:
         return {}
-
     try:
         return json.loads(cleaned)
     except json.JSONDecodeError:
@@ -67,7 +71,6 @@ def extract_json_payload(text: str) -> Dict[str, Any]:
             return json.loads(object_match.group(1))
         except json.JSONDecodeError:
             return {}
-
     return {}
 
 
@@ -86,9 +89,8 @@ def safe_action_from_payload(payload: Dict[str, Any]) -> Action:
 def analyze_clause(client: OpenAI, observation: Observation) -> Action:
     prompt = PROMPT_TEMPLATE.format(clause=observation.clause)
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model=MODEL_NAME,
         temperature=0,
-        response_format={"type": "json_object"},
         messages=[
             {"role": "user", "content": prompt},
         ],
@@ -99,36 +101,42 @@ def analyze_clause(client: OpenAI, observation: Observation) -> Action:
 
 
 def run_task(env: LegalEnv, client: OpenAI, task: str) -> float:
+    print(f"START: {task}")
     observation = env.reset(task)
     scores: List[float] = []
+    step_index = 0
 
     while True:
         action = analyze_clause(client, observation)
         observation, reward, done, _ = env.step(action)
         scores.append(reward.score)
+        print(f"STEP: {step_index} | reward: {reward.score:.4f}")
+        step_index += 1
         if done:
             break
 
-    return mean(scores) if scores else 0.0
+    final_score = mean(scores) if scores else 0.0
+    print(f"END: {task} | score: {final_score:.4f}")
+    return final_score
 
 
 def main() -> None:
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        raise RuntimeError("OPENAI_API_KEY is not set.")
+    # Ensure token is present as per checklist
+    if not HF_TOKEN:
+        print("Warning: HF_TOKEN is not set. API calls might fail if authentication is required.")
 
-    client = OpenAI(api_key=api_key)
+    client = OpenAI(
+        base_url=API_BASE_URL if API_BASE_URL.endswith("/v1") else f"{API_BASE_URL}/v1",
+        api_key=HF_TOKEN or "no-token-provided"
+    )
     env = LegalEnv()
 
     task_scores: Dict[str, float] = {}
     for task in env.available_tasks():
         task_scores[task] = run_task(env, client, task)
 
-    for task, score in task_scores.items():
-        print(f"{task}_score={score:.4f}")
-
     average_score = mean(task_scores.values()) if task_scores else 0.0
-    print(f"average_score={average_score:.4f}")
+    print(f"OVERALL_AVERAGE_SCORE: {average_score:.4f}")
 
 
 if __name__ == "__main__":
