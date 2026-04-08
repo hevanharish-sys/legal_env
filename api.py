@@ -59,7 +59,7 @@ analyzer = DocumentAnalyzer()
 
 
 class ResetRequest(BaseModel):
-    task: str
+    task: str = "easy"
 
 
 def perform_reset(task: str) -> Dict[str, Any]:
@@ -84,7 +84,7 @@ def reset_post(req: ResetRequest) -> Dict[str, Any]:
 
 
 @app.get("/reset")
-def reset_get(task: str = Query(..., pattern="^(easy|medium|hard)$")) -> Dict[str, Any]:
+def reset_get(task: str = Query("easy", pattern="^(easy|medium|hard)$")) -> Dict[str, Any]:
     return perform_reset(task)
 
 
