@@ -24,6 +24,22 @@ app.add_middleware(
 )
 
 
+@app.get("/")
+def root():
+    return {
+        "status": "online",
+        "message": "Legal Document Risk Analyzer API is running.",
+        "endpoints": {
+            "reset": "/reset?task={easy|medium|hard}",
+            "step": "/step",
+            "state": "/state",
+            "analyze": "/analyze",
+            "analyze_document": "/analyze-document",
+            "docs": "/docs"
+        }
+    }
+
+
 environment = LegalEnv()
 analyzer = DocumentAnalyzer()
 
