@@ -1,11 +1,9 @@
-from __future__ import annotations
-import typing
-from typing import Any, Dict
-
-from fastapi import FastAPI, HTTPException, Query, UploadFile, File
+from fastapi import FastAPI, HTTPException, Query, UploadFile, File, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from pydantic import BaseModel, Field
+from typing import Annotated, Optional
 import os
 
 from env import LegalEnv
@@ -59,7 +57,7 @@ analyzer = DocumentAnalyzer()
 
 
 class ResetRequest(BaseModel):
-    task: str = "easy"
+    task: str = Field(default="easy", pattern="^(easy|medium|hard)$")
 
 
 def perform_reset(task: str) -> Dict[str, Any]:
@@ -84,7 +82,7 @@ def reset_post(req: ResetRequest) -> Dict[str, Any]:
 
 
 @app.get("/reset")
-def reset_get(task: str = Query("easy", pattern="^(easy|medium|hard)$")) -> Dict[str, Any]:
+def reset_get(task: Annotated[str, Query(pattern="^(easy|medium|hard)$")] = "easy") -> Dict[str, Any]:
     return perform_reset(task)
 
 
