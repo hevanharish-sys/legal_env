@@ -8,7 +8,7 @@ description: >
 entrypoints:
   environment: env.py:LegalEnv
   api: api.py:app
-  baseline: baseline.py
+  baseline: inference.py
 models:
   observation: models.py:Observation
   action: models.py:Action
@@ -31,6 +31,6 @@ tasks:
       - rewrite
       - reason
 api:
-  reset: GET /reset?task={easy|medium|hard}
+  reset: POST /reset?task={easy|medium|hard}
   step: POST /step
   state: GET /state

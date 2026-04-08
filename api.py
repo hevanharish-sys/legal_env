@@ -58,6 +58,7 @@ environment = LegalEnv()
 analyzer = DocumentAnalyzer()
 
 
+@app.post("/reset")
 @app.get("/reset")
 def reset(task: str = Query(..., pattern="^(easy|medium|hard)$")) -> Dict[str, Any]:
     try:
