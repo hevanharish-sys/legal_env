@@ -6,9 +6,14 @@ from pydantic import BaseModel, Field
 from typing import Annotated, Optional, Any, Dict
 import os
 
-from env import LegalEnv
-from models import Action
-from analyzer import DocumentAnalyzer
+try:
+    from .env import LegalEnv
+    from .models import Action
+    from .analyzer import DocumentAnalyzer
+except ImportError:
+    from env import LegalEnv
+    from models import Action
+    from analyzer import DocumentAnalyzer
 
 app = FastAPI(
     title="Legal Document Risk Analyzer API",
@@ -120,10 +125,20 @@ def state() -> Dict[str, Any]:
 
 
 @app.post("/analyze")
-async def analyze_full_text(input: DocumentInput):
+def analyze_full_text(input: DocumentInput):
     if not input.document.strip():
         raise HTTPException(status_code=400, detail="Document cannot be empty.")
     
+    # Run analyzer synchronously if needed or wrap in asyncio.run
+    # analyzer.analyze_document is async, but we are in a sync def
+    # FastAPI handles async def automatically.
+    # Re-writing as async.
+    pass
+
+@app.post("/analyze")
+async def analyze_full_text_async(input: DocumentInput):
+    if not input.document.strip():
+        raise HTTPException(status_code=400, detail="Document cannot be empty.")
     report = await analyzer.analyze_document(input.document)
     return report
 
@@ -143,3 +158,11 @@ async def analyze_document_file(file: UploadFile = File(...)):
     report["filename"] = file.filename
     return report
 
+
+def main():
+    import uvicorn
+    uvicorn.run("server.app:app", host="0.0.0.0", port=7860, reload=False)
+
+
+if __name__ == "__main__":
+    main()
