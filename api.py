@@ -76,14 +76,19 @@ def perform_reset(task: str) -> Dict[str, Any]:
     }
 
 
-@app.post("/reset")
-def reset_post(req: ResetRequest) -> Dict[str, Any]:
-    return perform_reset(req.task)
-
-
-@app.get("/reset")
-def reset_get(task: Annotated[str, Query(pattern="^(easy|medium|hard)$")] = "easy") -> Dict[str, Any]:
-    return perform_reset(task)
+@app.api_route("/reset", methods=["GET", "POST"])
+def reset(
+    task: Annotated[Optional[str], Query(pattern="^(easy|medium|hard)$")] = None,
+    req: Annotated[Optional[ResetRequest], Body()] = None
+) -> Dict[str, Any]:
+    # Resolve task: Body takes precedence, then Query, then default "easy"
+    final_task = "easy"
+    if req and req.task:
+        final_task = req.task
+    elif task:
+        final_task = task
+        
+    return perform_reset(final_task)
 
 
 @app.post("/step")
