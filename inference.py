@@ -3,10 +3,11 @@ from __future__ import annotations
 import json
 import os
 import re
+import sys
 from statistics import mean
 from typing import Any, Dict, List
 
-from openai import OpenAI
+from openai import OpenAI, OpenAIError
 
 from env import LegalEnv
 from models import Action, Observation
@@ -19,19 +20,6 @@ HF_TOKEN = os.getenv("HF_TOKEN")
 PROMPT_TEMPLATE = """You are a legal AI assistant.
 
 Analyze the contract clause.
-
-Return:
-
-* risk_level (low/medium/high)
-* risk_type (liability, termination, payment, confidentiality, compliance)
-* rewrite (safer clause)
-* reason (why risky)
-
-Rules:
-
-* Be realistic and professional
-* Do not hallucinate laws
-* Keep rewrite enforceable
 
 Return ONLY JSON:
 
@@ -51,26 +39,19 @@ VALID_RISK_TYPES = {"liability", "termination", "payment", "confidentiality", "c
 
 def extract_json_payload(text: str) -> Dict[str, Any]:
     cleaned = text.strip()
-    if not cleaned:
-        return {}
-    try:
-        return json.loads(cleaned)
-    except json.JSONDecodeError:
-        pass
+    if not cleaned: return {}
+    try: return json.loads(cleaned)
+    except json.JSONDecodeError: pass
 
     fenced_match = re.search(r"```json\s*(\{.*?\})\s*```", cleaned, flags=re.DOTALL | re.IGNORECASE)
     if fenced_match:
-        try:
-            return json.loads(fenced_match.group(1))
-        except json.JSONDecodeError:
-            pass
+        try: return json.loads(fenced_match.group(1))
+        except json.JSONDecodeError: pass
 
     object_match = re.search(r"(\{.*\})", cleaned, flags=re.DOTALL)
     if object_match:
-        try:
-            return json.loads(object_match.group(1))
-        except json.JSONDecodeError:
-            return {}
+        try: return json.loads(object_match.group(1))
+        except json.JSONDecodeError: pass
     return {}
 
 
@@ -88,31 +69,47 @@ def safe_action_from_payload(payload: Dict[str, Any]) -> Action:
 
 def analyze_clause(client: OpenAI, observation: Observation) -> Action:
     prompt = PROMPT_TEMPLATE.format(clause=observation.clause)
-    response = client.chat.completions.create(
-        model=MODEL_NAME,
-        temperature=0,
-        messages=[
-            {"role": "user", "content": prompt},
-        ],
-    )
-    content = response.choices[0].message.content or "{}"
-    payload = extract_json_payload(content)
-    return safe_action_from_payload(payload)
+    try:
+        response = client.chat.completions.create(
+            model=MODEL_NAME,
+            temperature=0,
+            messages=[{"role": "user", "content": prompt}],
+            timeout=30.0
+        )
+        content = response.choices[0].message.content or "{}"
+        payload = extract_json_payload(content)
+        return safe_action_from_payload(payload)
+    except OpenAIError as e:
+        print(f"LLM Error: {type(e).__name__}: {e}")
+        # Return fallback action so the task doesn't crash
+        return Action(risk_level=None, risk_type=None, rewrite="", reason="Analysis failed due to LLM error")
+    except Exception as e:
+        print(f"Unexpected Error in analyze_clause: {type(e).__name__}: {e}")
+        return Action(risk_level=None, risk_type=None, rewrite="", reason="Unexpected error")
 
 
 def run_task(env: LegalEnv, client: OpenAI, task: str) -> float:
     print(f"START: {task}")
-    observation = env.reset(task)
+    try:
+        observation = env.reset(task)
+    except Exception as e:
+        print(f"Error resetting environment: {e}")
+        print(f"END: {task} | score: 0.0000")
+        return 0.0
+
     scores: List[float] = []
     step_index = 0
 
     while True:
         action = analyze_clause(client, observation)
-        observation, reward, done, _ = env.step(action)
-        scores.append(reward.score)
-        print(f"STEP: {step_index} | reward: {reward.score:.4f}")
-        step_index += 1
-        if done:
+        try:
+            observation, reward, done, _ = env.step(action)
+            scores.append(reward.score)
+            print(f"STEP: {step_index} | reward: {reward.score:.4f}")
+            step_index += 1
+            if done: break
+        except Exception as e:
+            print(f"Error in environment step: {e}")
             break
 
     final_score = mean(scores) if scores else 0.0
@@ -121,15 +118,28 @@ def run_task(env: LegalEnv, client: OpenAI, task: str) -> float:
 
 
 def main() -> None:
-    # Ensure token is present as per checklist
-    if not HF_TOKEN:
-        print("Warning: HF_TOKEN is not set. API calls might fail if authentication is required.")
+    print(f"Inference Config: API_BASE_URL={API_BASE_URL}, MODEL_NAME={MODEL_NAME}")
+    if HF_TOKEN:
+        print(f"HF_TOKEN present (length: {len(HF_TOKEN)})")
+    else:
+        print("Warning: HF_TOKEN is NOT set.")
 
-    client = OpenAI(
-        base_url=API_BASE_URL if API_BASE_URL.endswith("/v1") else f"{API_BASE_URL}/v1",
-        api_key=HF_TOKEN or "no-token-provided"
-    )
-    env = LegalEnv()
+    # Normalize base_url for OpenAI client
+    normalized_url = API_BASE_URL
+    if not normalized_url.endswith("/v1") and "/v1/" not in normalized_url:
+        normalized_url = normalized_url.rstrip("/") + "/v1"
+
+    print(f"Using normalized OpenAI base_url: {normalized_url}")
+
+    try:
+        client = OpenAI(
+            base_url=normalized_url,
+            api_key=HF_TOKEN or "no-token-provided"
+        )
+        env = LegalEnv()
+    except Exception as e:
+        print(f"Initialization Error: {e}")
+        sys.exit(1)
 
     task_scores: Dict[str, float] = {}
     for task in env.available_tasks():
