@@ -100,7 +100,8 @@ def _is_missing(value: Any) -> bool:
 
 
 def _clip_score(score: float) -> float:
-    return max(0.0, min(1.0, round(score, 4)))
+    # Ensure score is strictly in (0, 1) range (not 0 or 1) per validator requirement
+    return max(0.01, min(0.99, round(score, 4)))
 
 
 def score_prediction(
