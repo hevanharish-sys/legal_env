@@ -89,12 +89,12 @@ def analyze_clause(client: OpenAI, observation: Observation) -> Action:
 
 
 def run_task(env: LegalEnv, client: OpenAI, task: str) -> float:
-    print(f"START: {task}")
+    print(f"[START] task={task}", flush=True)
     try:
         observation = env.reset(task)
     except Exception as e:
-        print(f"Error resetting environment: {e}")
-        print(f"END: {task} | score: 0.0000")
+        print(f"Error resetting environment: {e}", flush=True)
+        print(f"[END] task={task} score=0.0000 steps=0", flush=True)
         return 0.0
 
     scores: List[float] = []
@@ -105,15 +105,15 @@ def run_task(env: LegalEnv, client: OpenAI, task: str) -> float:
         try:
             observation, reward, done, _ = env.step(action)
             scores.append(reward.score)
-            print(f"STEP: {step_index} | reward: {reward.score:.4f}")
+            print(f"[STEP] step={step_index} reward={reward.score:.4f}", flush=True)
             step_index += 1
             if done: break
         except Exception as e:
-            print(f"Error in environment step: {e}")
+            print(f"Error in environment step: {e}", flush=True)
             break
 
     final_score = mean(scores) if scores else 0.0
-    print(f"END: {task} | score: {final_score:.4f}")
+    print(f"[END] task={task} score={final_score:.4f} steps={step_index}", flush=True)
     return final_score
 
 
